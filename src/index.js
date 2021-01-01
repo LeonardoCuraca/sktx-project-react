@@ -14,14 +14,14 @@ function Index() {
   return (
     <Router>
       <Switch>
+        <Route exact path="/">
+          <MainPage />
+        </Route>
         <Route path="/dashboard">
           <Dashboard />
         </Route>
         <Route path="/login">
           <Login />
-        </Route>
-        <Route path="/">
-          <MainPage />
         </Route>
       </Switch>
     </Router>

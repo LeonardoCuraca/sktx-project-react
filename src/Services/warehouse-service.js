@@ -3,9 +3,12 @@ const axios = require('axios');
 
 const WarehouseService = {
   getAll: function() {
-    return axios.get(host.host + "/warehouse")
+    return axios.get(host.host + "/warehouses")
     .then(function (res) {
       return res.data;
+    })
+    .catch(function (error) {
+      return {code: 0};
     })
   },
   getAllProducts: function(warehouse_id) {
@@ -14,6 +17,15 @@ const WarehouseService = {
     })
     .then(function (res) {
       return res.data;
+    })
+  },
+  getAllTypes: function() {
+    return axios.get(host.host + "/warehouseTypes")
+    .then(function (res) {
+      return res.data;
+    })
+    .catch(function (error) {
+      console.log(error)
     })
   }
 }
