@@ -1,23 +1,41 @@
 import React, { useState } from 'react';
 import { GithubPicker } from 'react-color';
+import { useForm } from 'react-hook-form';
 
 import WarehouseService from '../../Services/warehouse-service';
+import AddressService from '../../Services/AddressService';
 
 export default function CreateWarehouse() {
 
-  const newWarehouse = {
-    "warehouseTypeId": 1, 
-    "warehouseName": "warehouse test ",
-    "warehouseTelephone": "789456321",
-    "warehouseColorCard": "#18b3c0",
-    "address": {
-        "departmentId": 1, 
-        "districtId": 1,
-        "viaId": 5,
-        "addressViaName": "J", 
-        "addressNumber": 4,
-        "addressReference": "Fachada violeta..."
-    }
+  const [formState, setFormState] = useState(null);
+  const [message, setMessage] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const { watch, register, handleSubmit, errors, setValue, getValues } = useForm({});
+
+  const departmentId = watch("address.departmentId");
+
+  const onSubmit = (data) => {
+    setLoading(true);
+    WarehouseService.createWarehouse(data)
+    .then(data => {
+        if (data.code === 200) {
+            setMessage({'header': 'Registro Completado', 'content': 'Se ha creado el almacén con éxito.'})
+            setFormState('success');
+        } else {
+            if (data.msg) {
+                setMessage({'header': 'Proceso Fallido', 'content': data.msg});
+            } else {
+                setMessage({'header': 'Registro Fallido', 'content': 'Se produjo un error al crear el almacén.'});
+            }
+            setFormState('error');
+        }
+        setLoading(false);
+    })
+  }
+  
+  function setColor(color) {
+    setValue('warehouseColorCard', color);
   }
 
   const [warehouseTypes, setWarehouseTypes] = useState([]);
@@ -28,50 +46,259 @@ export default function CreateWarehouse() {
         if (data.code === 200) {
           setWarehouseTypes(data.list);
         }
+        getDepartments();
     })
-}, [])
+  }, [])
+
+  const [departments, setDepartments] = useState([]);
+
+  const getDepartments = React.useCallback(async () => {
+    AddressService.getAllDepartments()
+    .then(data => {
+        if (data.code === 200) {
+          setDepartments(data.list);
+        }
+        getDistricts();
+    })
+  }, [])
+
+  const [districts, setDistricts] = useState([]);
+
+  const getDistricts = React.useCallback(async () => {
+    AddressService.getAllDistricts()
+    .then(data => {
+        if (data.code === 200) {
+          setDistricts(data.list);
+        }
+        getVias();
+    })
+  }, [])
+
+  const [vias, setVias] = useState([]);
+
+  const getVias = React.useCallback(async () => {
+    AddressService.getAllVias()
+    .then(data => {
+        if (data.code === 200) {
+          setVias(data.list);
+        }
+        setLoading(false);
+    })
+  }, [])
 
   React.useEffect(() => {
     getWarehouseTypes();
+    register({ name: "warehouseColorCard" })
+    setValue('warehouseColorCard', '#18b3c0');
     window['externalDropdownTrigger']()
   }, [getWarehouseTypes])
 
   return (
-    <form className="ui form segment">
-      <h4 className="ui dividing header">Crear Almacén</h4>
-      <div className="fields">
-        <div className="ten wide field">
-          <label>Nombre</label>
-          <input type="text" placeholder="Nombre de Almacén"></input>
-        </div>
-        <div className="six wide field">
-          <label>Tipo de Almacén</label>
-          <div className="ui selection dropdown">
-            <i className="dropdown icon" />
-            <div className="default text">Tipo de Almacén</div>
-            <div className="menu">
-              {
-                warehouseTypes.map(warehouseType => {
-                    return (
-                      <div key={warehouseType.warehouseTypeId} className="item" data-value={warehouseType.warehouseTypeId}>{warehouseType.warehouseTypeName}</div>
-                    )
-                })
-              }
+    <div className="ui stackable centered grid">
+      <div className="fourteen wide column">
+        <form className={loading ? "ui loading form segment" : "ui form segment"} onSubmit={handleSubmit(onSubmit)}>
+          <h4 className="ui dividing header">Crear Almacén</h4>
+          <div className="fields">
+            <div className="ten wide field">
+              <label>Nombre</label>
+              <input 
+                type="text"
+                placeholder="Nombre de Almacén"
+                name="warehouseName"
+                ref={
+                    register({
+                        required: {value: true, message: 'El Nombre del Almacén es Obligatorio'}
+                    })
+                }>
+              </input>
+            </div>
+            <div className="six wide field">
+              <label>Tipo de Almacén</label>
+              <select className="ui dropdown"
+                name="warehouseTypeId"
+                ref={
+                    register({
+                        required: {value: true, message: 'El tipo de Almacén es obligatorio'}
+                    })
+                }>
+                <option value="">Categoría de Producto</option>
+                {
+                    warehouseTypes.map(warehouseType => {
+                        return (
+                            <option key={warehouseType.warehouseTypeId} value={warehouseType.warehouseTypeId}>{warehouseType.warehouseTypeName}</option>
+                        )
+                    })
+                }
+              </select>
             </div>
           </div>
-        </div>
+          <div className="fields">
+            <div className="twelve wide field">
+              <label>Teléfono</label>
+              <input type="tel"
+                placeholder="Número de contacto"
+                name="warehouseTelephone"
+                ref={
+                  register({
+                      required: {value: true, message: 'El número de teléfono del almacén es obligatorio'}
+                  })
+              }>
+              </input>
+            </div>
+            <div className="four wide field">
+              <label>Color</label>
+              <ColorPicker setColor={setColor}/>
+            </div>
+          </div>
+          <h4 className="ui dividing header">Definir Dirección</h4>
+          <div className="fields">
+            <div className="eight wide field">
+              <label>Departamento</label>
+              <select className="ui dropdown"
+                name="address.departmentId"
+                ref={
+                    register({
+                        required: {value: true, message: 'El Departamento es obligatorio'}
+                    })
+                }>
+                <option value="">Departamentos</option>
+                {
+                    departments.map(department => {
+                        return (
+                            <option key={department.departmentId} value={department.departmentId}>{department.departmentName}</option>
+                        )
+                    })
+                }
+              </select>
+            </div>
+            <div className="eight wide field">
+              <label>Distrito</label>
+              <select className="ui search dropdown"
+                name="address.districtId"
+                ref={
+                    register({
+                        required: {value: true, message: 'El Distrito es obligatorio'}
+                    })
+                }>
+                <option value="">Distritos</option>
+                {
+                    districts.map(district => {
+                        return (
+                            <option key={district.districtId} value={district.districtId}>{district.districtName} | {district.Department.departmentName}</option>
+                        )
+                    })
+                }
+              </select>
+            </div>
+          </div>
+          <div className="fields">
+            <div className="four wide field">
+              <label>Vía</label>
+              <select className="ui dropdown"
+                name="address.viaId"
+                ref={
+                    register({
+                        required: {value: true, message: 'La Vía es obligatoria'}
+                    })
+                }>
+                <option value="">Vías</option>
+                {
+                    vias.map(via => {
+                        return (
+                            <option key={via.viaId} value={via.viaId}>{via.viaName}</option>
+                        )
+                    })
+                }
+              </select>
+            </div>
+            <div className="four wide field">
+              <label>Nombre de vía</label>
+              <input 
+                type="text"
+                placeholder="Nombre de la vía"
+                name="address.addressViaName"
+                ref={
+                    register({
+                        required: {value: true, message: 'El Nombre de la Vía es Obligatorio'}
+                    })
+                }>
+              </input>
+            </div>
+            <div className="four wide field">
+              <label>Número de dirección</label>
+              <input 
+                type="number"
+                placeholder="Número de dirección"
+                name="address.addressNumber"
+                ref={
+                    register({
+                        required: {value: true, message: 'El Número de la dirección es Obligatorio'}
+                    })
+                }>
+              </input>
+            </div>
+            <div className="four wide field">
+              <label>Referencia</label>
+              <input 
+                type="text"
+                placeholder="Referencia de dirección"
+                name="address.addressReference"
+                ref={
+                    register({
+                        required: {value: true, message: 'La referencia es obligatoria'}
+                    })
+                }>
+              </input>
+            </div>
+          </div>
+          <button className="ui button" type="submit" style={{backgroundColor: '#18b3c0', color: 'white'}}>Submit</button>
+        </form>
+          {formState !== null &&
+            <div className={"ui " + formState + " message"}>
+              <i className="close icon" onClick={() => setFormState(null)}></i>
+              <div className="header">{message.header}</div>
+              <p>{message.content}</p>
+            </div>
+          }
+          {Object.entries(errors).length !== 0 &&
+            <div className={"ui warning icon message"}>
+              <i className="inbox icon"></i>
+              <div className="content">
+                <div className="header">{Object.entries(errors).length === 1 ? 'Advertencia' : 'Múltiples Advertencias'}</div>
+                <ul class="list">
+                  {errors.warehouseName &&
+                    <li>{errors.warehouseName.message}</li>
+                  }
+                  {errors.warehouseTypeId &&
+                    <li>{errors.warehouseTypeId.message}</li>
+                  }
+                  {errors.warehouseTelephone &&
+                    <li>{errors.warehouseTelephone.message}</li>
+                  }
+                  {errors.address?.departmentId &&
+                    <li>{errors.address.departmentId.message}</li>
+                  }
+                  {errors.address?.districtId &&
+                    <li>{errors.address.districtId.message}</li>
+                  }
+                  {errors.address?.viaId &&
+                    <li>{errors.address.viaId.message}</li>
+                  }
+                  {errors.address?.addressViaName &&
+                    <li>{errors.address.addressViaName.message}</li>
+                  }
+                  {errors.address?.addressNumber &&
+                    <li>{errors.address.addressNumber.message}</li>
+                  }
+                  {errors.address?.addressReference &&
+                    <li>{errors.address.addressReference.message}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
       </div>
-      <div className="fields">
-        <div className="twelve wide field">
-          <label>Teléfono</label>
-          <input type="tel" placeholder="Número de contacto"></input>
-        </div>
-        <div className="four wide field">
-          <label>Color</label>
-          <ColorPicker/>
-        </div>
-      </div>
-    </form>
+  </div>
   )
 }
 
@@ -92,7 +319,7 @@ class ColorPicker extends React.Component {
   };
 
   handleColorChange = color => {
-    console.log(color.hex)
+    this.props.setColor(color.hex);
     this.setState({
       colorValue: color.hex
     });

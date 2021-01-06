@@ -5,6 +5,7 @@ import WarehouseService from '../../Services/warehouse-service';
 export default function WarehouseList() {
 
     const [warehouses, setWarehouses] = useState([]);
+    const [selectedWarehouse, setSelectedWarehouse] = useState({});
     
     const getWarehouses = React.useCallback(async () => {
         WarehouseService.getAll()
@@ -19,6 +20,11 @@ export default function WarehouseList() {
         getWarehouses()
         window['externalDropdownTrigger']()
     }, [getWarehouses])
+
+    function openDeleteModal(warehouse) {
+        setSelectedWarehouse(warehouse);
+        window['showModal']();
+    }
 
     let { url } = useRouteMatch();
     return (
@@ -38,7 +44,7 @@ export default function WarehouseList() {
                     {
                         warehouses.map(warehouse => {
                             return (
-                                <WarehouseCard key={warehouse.warehouseId} warehouse={warehouse}/>
+                                <WarehouseCard key={warehouse.warehouseId} warehouse={warehouse} openDeleteModal={openDeleteModal}/>
                             )
                         })
                     }
@@ -48,11 +54,10 @@ export default function WarehouseList() {
     )
 }
 
-function WarehouseCard(props) {
+function WarehouseCard({ warehouse, openDeleteModal}) {
 
     let { path } = useRouteMatch();
 
-    const warehouse = props.warehouse;
     console.log(warehouse);
 
     React.useEffect(() => {
@@ -68,9 +73,17 @@ function WarehouseCard(props) {
                         <i className={warehouse.warehouseTypeId === 1 ? 'right floated tag icon' : 'right floated box icon'} style={{color: warehouse.warehouseColorCard}}/>
                         <div class="menu" style={{margin: '0.5rem -0.5rem'}}>
                             <Link className="item" to={`${path}/${warehouse.warehouseId}/products`}>
-                                <i className="eye icon" />
+                                <i className="eye icon" style={{color: '#18b3c0'}} />
                                 Visualizar Registros
                             </Link>
+                            <Link className="item" to={`${path}/${warehouse.warehouseId}/edit`}>
+                                <i className="pencil icon yellow" />
+                                Editar Producto
+                            </Link>
+                            <div className="item" onClick={() => openDeleteModal(warehouse)}>
+                                <i className="trash icon red" />
+                                Eliminar Producto
+                            </div>
                         </div>
                     </div>
                 </div>

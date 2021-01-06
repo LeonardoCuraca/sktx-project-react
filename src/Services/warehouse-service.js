@@ -11,6 +11,15 @@ const WarehouseService = {
       return {code: 0};
     })
   },
+  createWarehouse: function(product) {
+    return axios.post(host.host + "/warehouses/insert", product)
+    .then(function (res) {
+      return res.data;
+    })
+    .catch(function (error) {
+      return {code: 0};
+    })
+  },
   getAllProducts: function(warehouse_id) {
     return axios.post(host.host + "/warehouse/getProducts", {
       warehouse_id: warehouse_id

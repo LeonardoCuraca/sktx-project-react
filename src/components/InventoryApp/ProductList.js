@@ -5,7 +5,10 @@ import ProductService from '../../Services/product-service';
 export default function WarehouseList() {
 
     const [products, setProducts] = useState([]);
-    const [selectedProduct, setSelectedProduct] = useState();
+    const [selectedProduct, setSelectedProduct] = useState({});
+
+    const [messageState, setMessageState] = useState(null);
+    const [message, setMessage] = useState({});
     
     const getProducts = React.useCallback(async () => {
         ProductService.getAll()
@@ -20,9 +23,24 @@ export default function WarehouseList() {
         getProducts()
     }, [getProducts])
 
-    function openDeleteModal(productId){
-        console.log(productId);
+    function openDeleteModal(product) {
+        setSelectedProduct(product);
         window['showModal']();
+    }
+
+    function deleteProduct(productId) {
+        ProductService.deleteProduct(productId)
+        .then(data => {
+            console.log(data);
+            if (data.code === 0) {
+                setMessageState('error');
+                setMessage({'header': 'Proceso Fallido', 'content': 'Ocurrió un error al inhabilitar el producto.'});
+            } else {
+                setMessageState('success');
+                setMessage({'header': 'Eliminación Lógica Completada', 'content': 'Se inhabilitó correctamente el producto.'});
+                getProducts();
+            }
+        })
     }
 
     let { url } = useRouteMatch();
@@ -38,32 +56,42 @@ export default function WarehouseList() {
                     Generar Reporte
                 </button>
             </div>
+            {messageState !== null &&
+                <div className="sixteen wide column">
+                    <div className={"ui " + messageState + " message"}>
+                        <i className="close icon" onClick={() => setMessageState(null)}></i>
+                        <div className="header">{message.header}</div>
+                        <p>{message.content}</p>
+                    </div>
+                </div>
+            }
             <div className="sixteen wide column">
                 <div className="ui four stackable cards">
                     {
                         products.map(product => {
-                            return (
-                                <ProductCard product={product} openDeleteModal={() => openDeleteModal(product.productId)} />
-                            )
+                            if (product.enabled)
+                                return (
+                                    <ProductCard key={product.productId} product={product} openDeleteModal={openDeleteModal} />
+                                )
                         })
                     }
                 </div>
             </div>
-            <div class="ui basic modal">
-                <div class="ui icon header">
-                    <i class="trash icon"></i>
-                    Eliminar Producto
+            <div className="ui basic modal">
+                <div className="ui icon header">
+                    <i className="trash icon"></i>
+                    Eliminar Producto {selectedProduct.productName}
                 </div>
-                <div class="content">
+                <div className="content">
                     <p>¿Está seguro(a) de eliminar el producto?</p>
                 </div>
-                <div class="actions">
-                    <div class="ui red basic cancel inverted button">
-                        <i class="remove icon"></i>
+                <div className="actions">
+                    <div className="ui red basic cancel inverted button">
+                        <i className="remove icon"></i>
                         No
                     </div>
-                    <div class="ui green ok inverted button">
-                        <i class="checkmark icon"></i>
+                    <div className="ui green ok inverted button" onClick={() => deleteProduct(selectedProduct.productId)}>
+                        <i className="checkmark icon"></i>
                         Sí
                     </div>
                 </div>
@@ -81,13 +109,13 @@ function ProductCard({product, openDeleteModal}) {
     }, [])
 
     return (
-        <div class="card">
-            <div class="content">
-                <div class="header" style={{display: 'flex', justifyContent: 'space-between'}}>
+        <div className="card">
+            <div className="content">
+                <div className="header" style={{display: 'flex', justifyContent: 'space-between'}}>
                     {product.productName}
-                    <div class="ui pointing dropdown top right">
+                    <div className="ui pointing dropdown top right">
                         <i className='right floated dropdown icon'/>
-                        <div class="menu" style={{margin: '0.5rem -0.5rem'}}>
+                        <div className="menu" style={{margin: '0.5rem -0.5rem'}}>
                             <Link className="item" to={`${path}/${product.productId}/variant`}>
                                 <i className="eye icon" style={{color: '#18b3c0'}} />
                                 Revisar Variantes
@@ -96,7 +124,7 @@ function ProductCard({product, openDeleteModal}) {
                                 <i className="pencil icon yellow" />
                                 Editar Producto
                             </Link>
-                            <div className="item" onClick={() => openDeleteModal}>
+                            <div className="item" onClick={() => openDeleteModal(product)}>
                                 <i className="trash icon red" />
                                 Eliminar Producto
                             </div>

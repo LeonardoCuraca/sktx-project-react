@@ -1,30 +1,34 @@
 import React, { useState } from 'react';
 import ProductService from '../../Services/product-service';
+import { useParams } from "react-router-dom";
 import { useForm } from 'react-hook-form';
 
-export default function ProductCreate() {
+export default function ProductEdit() {
+
+    let { product_id } = useParams();
 
     const [formState, setFormState] = useState(null);
     const [message, setMessage] = useState({});
+    const [loading, setLoading] = useState(true);
 
-    const {register, handleSubmit, errors} = useForm();
+    const {register, handleSubmit, errors, reset} = useForm({});
 
-    const onSubmit = (data, e) => {
-
-        ProductService.createProduct(data)
+    const onSubmit = (data) => {
+        setLoading(true);
+        ProductService.updateProduct(data)
         .then(data => {
-            if (data.code === 200) {
-                setMessage({'header': 'Registro Completado', 'content': 'Se ha creado un nuevo producto con éxito.'})
+            if (data.code === 1) {
+                setMessage({'header': 'Registro Completado', 'content': 'Se ha actualizado el producto con éxito.'})
                 setFormState('success');
             } else {
                 if (data.msg) {
                     setMessage({'header': 'Proceso Fallido', 'content': data.msg});
                 } else {
-                    setMessage({'header': 'Registro Fallido', 'content': 'Se produjo un error al registrar el producto.'});
+                    setMessage({'header': 'Registro Fallido', 'content': 'Se produjo un error al actualizar el producto.'});
                 }
                 setFormState('error');
             }
-            e.target.reset();
+            setLoading(false);
         })
     }
 
@@ -39,23 +43,39 @@ export default function ProductCreate() {
         })
     }, [])
 
+    const [product, setProduct] = useState({});
+
+    const getProduct = React.useCallback(async () => {
+        ProductService.getProductById(product_id)
+        .then(data => {
+            if (data.code === 200) {
+                console.log(data)
+                setProduct(data.object);
+                reset(data.object);
+            }
+            setLoading(false);
+            getCategories();
+        })
+    }, [getCategories, product_id, reset])
+
     React.useEffect(() => {
-        getCategories()
+        getProduct();
         window['externalDropdownTrigger']();
-    }, [getCategories])
+    }, [getProduct])
 
     return (
         <div className="ui stackable centered grid">
             <div className="fourteen wide column">
-                <form className="ui form segment" onSubmit={handleSubmit(onSubmit)}>
-                    <h4 className="ui dividing header">Crear Producto</h4>
+                <form className={loading ? "ui loading form segment" : "ui form segment"} onSubmit={handleSubmit(onSubmit)}>
+                    <h4 className="ui dividing header">Editar Producto {product_id}</h4>
+                    <input name="productId" ref={register()} hidden></input>
                     <div className="fields">
                         <div className="ten wide required field">
                             <label>Nombre</label>
                             <input 
                                 type="text" 
                                 placeholder="Nombre de Producto" 
-                                name="productName" 
+                                name="productName"
                                 ref={
                                     register({
                                         required: {value: true, message: 'El Nombre de Producto es Obligatorio'}
@@ -65,19 +85,19 @@ export default function ProductCreate() {
                         </div>
                         <div className="six wide required field">
                             <label>Categoría</label>
-                            <select className="ui dropdown"
+                            <select className="ui disabled dropdown"
                                 name="productCategoryId"
                                 ref={
                                     register({
                                         required: {value: true, message: 'La Categoría del Producto es Obligatoria'}
                                     })
                                 }>
-                                <option value="">Categoría de Producto</option>
                                 {
                                     categories.map(category => {
-                                        return (
+                                        return product.productCategoryId === category.productCategoryId ?
+                                            <option selected key={category.productCategoryId} value={category.productCategoryId}>{category.productCategoryName}</option>
+                                            :
                                             <option key={category.productCategoryId} value={category.productCategoryId}>{category.productCategoryName}</option>
-                                        )
                                     })
                                 }
                             </select>

@@ -6,7 +6,9 @@ import WarehouseList from './WarehouseList';
 import InventoryOverview from './InventoryOverview';
 import ProductList from './ProductList';
 import ProductVariantList from './ProductVariantList';
+import ProductVariantCreate from './ProductVariantCreate';
 import ProductCreate from './ProductCreate';
+import ProductEdit from './ProductEdit';
 
 export default function Inventory() {
 
@@ -37,8 +39,14 @@ export default function Inventory() {
         <Route exact path={`${path}/product/create`}>
           <ProductCreate />
         </Route>
+        <Route exact path={`${path}/product/:product_id/edit`}>
+          <ProductEdit />
+        </Route>
         <Route exact path={`${path}/product/:product_id/variant`}>
           <ProductVariantList />
+        </Route>
+        <Route exact path={`${path}/product/:product_id/variant/create`}>
+          <ProductVariantCreate />
         </Route>
       </Switch>
     </div>
